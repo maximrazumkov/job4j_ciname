@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Hello, world!</title>
+</head>
+<body>
+<!-- Optional JavaScript -->
+<!-- jQuery first, then Popper.js, then Bootstrap JS -->
+<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.4.1.min.js" ></script>
+<div class="container">
+    <div class="row pt-3">
+        <h4>
+            Бронирование месте на сеанс
+        </h4>
+        <table id="table" class="table table-bordered">
+            <thead id="thead">
+            <tr>
+                <th style="width: 120px;">Ряд / Место</th>
+            </tr>
+            </thead>
+            <tbody id="tablebody">
+           </tbody>
+       </table>
+        </div>
+           <div class="row float-right">
+               <button type="button" class="btn btn-success" onclick="paymant()">Оплатить</button>
+           </div>
+       </div>
+           <script>
+               function paymant() {
+                   let place = $('input[name=place]:checked').val();
+                   if (!place) {
+                       alert('Выберите место!');
+                       return;
+                   }
+                   place = place.split('');
+                   var newWin = window.open('http://localhost:8080/ciname/payment.html', 'payment');
+                   newWin.onload = function() {
+                       let h3 = newWin.document.createElement('h3');
+                       total = newWin.document.getElementById('total');
+                       h3.innerHTML = 'Вы выбрали ряд ' + place[0] + ' место ' + place[1] + ', Сумма : 500 рублей.'
+                       total.insertBefore(h3, total.firstChild);
+
+                       let inputLine = newWin.document.createElement('input');
+                       inputLine.setAttribute('value', place[0]);
+                       inputLine.setAttribute('name', 'line');
+                       inputLine.setAttribute('type', 'hidden');
+                       inputLine.setAttribute('id', 'lineValue');
+                       let line = newWin.document.getElementById('line');
+                       line.insertBefore(inputLine, line.firstChild);
+
+                       let inputCol = newWin.document.createElement('input');
+                       inputCol.setAttribute('value', place[1]);
+                       inputCol.setAttribute('name', 'col');
+                       inputCol.setAttribute('type', 'hidden');
+                       inputCol.setAttribute('id', 'colValue');
+                       let col = newWin.document.getElementById('col');
+                       col.insertBefore(inputCol, col.firstChild);
+
+                       let inputAmount = newWin.document.createElement('input');
+                       inputAmount.setAttribute('value', 500);
+                       inputAmount.setAttribute('name', 'amount');
+                       inputAmount.setAttribute('type', 'hidden');
+                       inputAmount.setAttribute('id', 'amountValue');
+                       let amount = newWin.document.getElementById('amount');
+                       amount.insertBefore(inputAmount, amount.firstChild);
+                   }
+               }
+               function load() {
+                   $('#thead').remove();
+                   $('#tablebody').remove();
+                   $('#table').append(
+                       '<thead id="thead">' +
+                           '<tr>' +
+                           '<th style="width: 120px;">Ряд / Место</th>' +
+                           '</tr>' +
+                       '</thead>' +
+                       '<tbody id="tablebody">' +
+                       '</tbody>'
+                   );
+                   $.ajax({
+                       type: 'GET',
+                       url: 'http://localhost:8080/ciname/hall',
+                       dataType: 'text'
+                   }).done(function(data) {
+                       let places = JSON.parse(data);
+                       places.sort((a, b) => {
+                           let res = a.row - b.row;
+                           if (!res) {
+                               res = a.col - b.col;
+                           }
+                           return res;
+                       });
+                       let row = 0;
+                       let col = 0;
+                       for (let i = 0; i < places.length; ++i) {
+                           let place = places[i];
+                           if (col < place.col) {
+                               $('#thead tr th:last').after(
+                                   '<th>' +
+                                       place.col +
+                                   '</th>'
+                               );
+                               ++col;
+                           }
+                           if (row < place.row) {
+                               let newLi = document.createElement('li');
+                               $('#tablebody').append(
+                                   '<tr><th>' +
+                                        place.row +
+                                   '</tr></th>'
+                               );
+                               ++row;
+                           }
+                           let content = ((place.busy === "false")
+                               ? '<input type="radio" name="place" value="' + row + place.col + '" /> Ряд ' + row + ', Место ' + place.col
+                               : '<p>Занято</p>');
+                           $('#tablebody tr:last').append('<td>' + content + '</td>');
+                       }
+                   }).fail(function(err){
+                       alert(err.toSource);
+                   });
+               }
+               load()
+               setInterval(() => load(), 5000);
+           </script>
+    </body>
+</html>
